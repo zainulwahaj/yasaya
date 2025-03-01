@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Exam Schedule Generator</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Exam Schedule Generator</h1>
+    <p>Upload your Course, Room, and Teacher Excel files to generate the exam schedule.</p>
+    
+    <!-- Upload Form -->
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="courseFile">Course File:</label>
+        <input type="file" id="courseFile" name="courseFile" accept=".xlsx" required />
+      </div>
+      <div class="form-group">
+        <label for="roomFile">Room File:</label>
+        <input type="file" id="roomFile" name="roomFile" accept=".xlsx" required />
+      </div>
+      <div class="form-group">
+        <label for="teacherFile">Teacher File:</label>
+        <input type="file" id="teacherFile" name="teacherFile" accept=".xlsx" required />
+      </div>
+      <button type="submit" class="btn btn-teal">Generate Schedule</button>
+    </form>
+
+    <!-- Loading Spinner -->
+    <div id="loader" class="loader" style="display: none;"></div>
+
+    <!-- Filter & Pagination Controls -->
+    <div id="filterContainer" class="filter-container" style="display: none;">
+      <input
+        type="text"
+        id="filterInput"
+        placeholder="Type to filter results..."
+      />
+    </div>
+
+    <!-- Schedule Table Output -->
+    <div id="tableContainer" class="table-container">
+      <div id="result" class="result"></div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="paginationWrapper" style="display: none;">
+      <div id="pagination-info" class="pagination-info"></div>
+      <div id="pagination" class="pagination"></div>
+    </div>
+
+    <!-- Download Button -->
+    <button id="downloadBtn" class="btn btn-success" style="display: none;">
+      Download Excel
+    </button>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+/* ----- GENERAL LAYOUT ----- */
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f3f6fa;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+/* ----- HEADERS & TEXT ----- */
+h1 {
+  text-align: center;
+  color: #222;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+p {
+  text-align: center;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* ----- FORMS & BUTTONS ----- */
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+input[type="file"] {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.btn-teal {
+  background: #008080;
+  color: #fff;
+}
+
+.btn-teal:hover {
+  background: #006666;
+}
+
+.btn-success {
+  background: #28a745;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+/* ----- LOADER ----- */
+.loader {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #008080;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ----- FILTER ----- */
+.filter-container {
+  margin: 20px 0;
+  text-align: center;
+}
+
+#filterInput {
+  width: 60%;
+  max-width: 400px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* ----- TABLE ----- */
+.table-container {
+  margin-top: 20px;
+  overflow-x: auto; /* allow horizontal scroll if columns are too wide */
+}
+
+.table-responsive {
+  width: 100%;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  min-width: 800px; /* ensures columns have some space */
+}
+
+.schedule-table th,
+.schedule-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+.schedule-table th {
+  background: #008080;
+  color: #fff;
+  font-weight: 600;
+}
+
+.schedule-table tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+/* ----- PAGINATION ----- */
+#paginationWrapper {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination-info {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.pagination {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.page-btn {
+  background: #008080;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #006666;
+}
+
+.page-btn.active {
+  background: #004c4c;
+  cursor: default;
+}
+
+.page-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.dots {
+  display: inline-block;
+  padding: 8px 12px;
+  color: #555;
+  user-select: none;
+}
