@@ -281,6 +281,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
+    # print("reuquest receieved")
     try:
         if ('courseFile' not in request.files or
             'roomFile' not in request.files or
