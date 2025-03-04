@@ -1,10 +1,9 @@
-/* static/js/main.js */
 let globalScheduleData = [];
 let currentPage = 1;
 const rowsPerPage = 10;
 
-// Limit how many page buttons we show at once
-const maxPageButtons = 5;  // e.g., show up to 5 numbered pages at once
+// Limit how many page buttons we show
+const maxPageButtons = 5;
 
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
   e.preventDefault();
@@ -47,6 +46,7 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
 
 // Download Excel
 document.getElementById('downloadBtn').addEventListener('click', function() {
+  // Simply go to /download_excel
   window.location.href = '/download_excel';
 });
 
@@ -80,7 +80,7 @@ function displayTable(data, page) {
   let html = '<h2>Generated Schedule</h2>';
   html += '<div class="table-responsive">';
   html += '<table class="schedule-table">';
-  
+
   const headers = Object.keys(paginatedData[0]);
   html += '<thead><tr>';
   headers.forEach(header => {
@@ -138,7 +138,7 @@ function setupPagination(data, rowsPerPage) {
   });
   paginationEl.appendChild(prevButton);
 
-  // Figure out which page buttons to show
+  // Determine which page buttons to show
   const half = Math.floor(maxPageButtons / 2);
   let startPage = currentPage - half;
   let endPage = currentPage + half;
@@ -172,7 +172,7 @@ function setupPagination(data, rowsPerPage) {
     }
   }
 
-  // Generate page buttons
+  // Main numbered page buttons
   for (let i = startPage; i <= endPage; i++) {
     const pageButton = document.createElement('button');
     pageButton.innerText = i;

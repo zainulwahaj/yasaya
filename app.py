@@ -6,8 +6,11 @@ from io import BytesIO
 app = Flask(__name__)
 app.secret_key = "YOUR_SECRET_KEY"  # Needed for session usage
 
+# Global cache in case session data is lost (for demo purposes)
+schedule_cache = None
+
 def process_schedule(courses_file, rooms_file, teachers_file):
-    # Read Excel files using pandas
+    # ================== Read Excel files ==================
     courses_df = pd.read_excel(
         courses_file,
         usecols=[
@@ -28,14 +31,17 @@ def process_schedule(courses_file, rooms_file, teachers_file):
         usecols=['Teacher ID', 'Teacher Name', 'Teacher Designation', 'Number of Duties']
     ).drop_duplicates()
     
-    # Step 1: Group courses and sort by number of students
-    grouped_courses_df = courses_df.groupby(
-        ['Course Code', 'Course Name', 'Department Name', 'Class Name', 'Semester'],
-        dropna=False
-    ).agg({'Number Of Students': 'sum'}).reset_index().drop_duplicates()
-    grouped_courses_df = grouped_courses_df.sort_values(by='Number Of Students', ascending=False)
+    # ================== Step 1: Group courses & sort ==================
+    grouped_courses_df = (
+        courses_df
+        .groupby(['Course Code', 'Course Name', 'Department Name', 'Class Name', 'Semester'], dropna=False)
+        .agg({'Number Of Students': 'sum'})
+        .reset_index()
+        .drop_duplicates()
+        .sort_values(by='Number Of Students', ascending=False)
+    )
     
-    # Step 2: Create date-timeslot combinations
+    # ================== Step 2: Date-timeslot combos ==================
     dates = ['2024-10-28', '2024-10-29', '2024-10-30', '2024-10-31', '2024-11-01', '2024-11-02']
     timeslots = ['8:30 - 09:50', '10:00 - 11:20', '11:30 - 12:50', '1:00 - 2:20', '2:30 - 3:50', '4:00 - 5:20']
     dates_df = pd.DataFrame(dates, columns=['Date'])
@@ -44,7 +50,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
     date_timeslot_list = dates_timeslots_df.to_dict('records')
     random.shuffle(date_timeslot_list)
     
-    # Step 3: Predefined course-to-timeslot mapping
+    # ================== Step 3: Predefined course->timeslot map ==================
     course_date_timeslot_mapping = {
         'HUM102': ('2024-10-29', '8:30 - 09:50'),
         'HUM112 /HUM116': ('2024-10-30', '8:30 - 09:50'),
@@ -66,7 +72,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
         course_date_tracker = {}
         dept_sem_tracker = {}
         
-        # First assign predefined timeslots
+        # 3a. First assign predefined timeslots
         for idx, row in df.iterrows():
             course_code = row['Course Code']
             dept_sem_key = (row['Department Name'], row['Semester'])
@@ -76,13 +82,11 @@ def process_schedule(courses_file, rooms_file, teachers_file):
                     dept_sem_key not in department_semester_tracker
                     or assigned_date not in department_semester_tracker[dept_sem_key]
                 ):
-                    if dept_sem_key not in department_semester_tracker:
-                        department_semester_tracker[dept_sem_key] = []
-                    department_semester_tracker[dept_sem_key].append(assigned_date)
+                    department_semester_tracker.setdefault(dept_sem_key, []).append(assigned_date)
                     df.at[idx, 'Date'] = assigned_date
                     df.at[idx, 'Timeslot'] = assigned_timeslot
         
-        # Then assign remaining courses
+        # 3b. Then assign remaining courses
         for idx, row in df.iterrows():
             course_group_key = (
                 row['Course Code'],
@@ -92,6 +96,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
             )
             dept_sem_key = (row['Department Name'], row['Semester'])
             
+            # Skip if predefined date/timeslot already assigned
             if pd.notna(row.get('Date')) and pd.notna(row.get('Timeslot')):
                 continue
             
@@ -109,15 +114,13 @@ def process_schedule(courses_file, rooms_file, teachers_file):
                         break
                 if not assigned_date_timeslot:
                     refill_date_timeslot_list()
-                    continue
+                    dt = date_timeslot_list.pop(0)
+                    assigned_date_timeslot = dt
                 
                 assigned_date = assigned_date_timeslot['Date']
                 assigned_timeslot = assigned_date_timeslot['Timeslot']
                 course_date_tracker[course_group_key] = (assigned_date, assigned_timeslot)
-                
-                if dept_sem_key not in dept_sem_tracker:
-                    dept_sem_tracker[dept_sem_key] = []
-                dept_sem_tracker[dept_sem_key].append(assigned_date)
+                dept_sem_tracker.setdefault(dept_sem_key, []).append(assigned_date)
             
             df.at[idx, 'Date'] = assigned_date
             df.at[idx, 'Timeslot'] = assigned_timeslot
@@ -126,7 +129,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
     
     grouped_courses_df = assign_dates_timeslots(grouped_courses_df)
     
-    # Step 4: Room allocation
+    # ================== Step 4: Room allocation ==================
     def allocate_rooms(df1, df2):
         df2 = df2.sort_values(by='Room Capacity', ascending=False)
         rooms_list = df2.to_dict('records')
@@ -152,7 +155,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
             for room in rooms_list:
                 room_name = room['Room Name']
                 full_capacity = room['Room Capacity']
-                remaining_capacity = room_capacity_tracker[date_timeslot_key].get(room_name, full_capacity)
+                remaining_capacity = room_capacity_tracker[date_timeslot_key][room_name]
                 half_capacity = full_capacity // 2
                 
                 if remaining_capacity >= half_capacity:
@@ -176,7 +179,6 @@ def process_schedule(courses_file, rooms_file, teachers_file):
                     
                     if num_students == 0:
                         break
-            # If num_students > 0, course wasn't fully allocated.
         
         allocated_rooms_df = pd.DataFrame(allocated_rooms)
         allocated_rooms_df = allocated_rooms_df[[
@@ -188,7 +190,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
     
     df3 = allocate_rooms(grouped_courses_df, rooms_df)
     
-    # Step 5: Teacher allocation
+    # ================== Step 5: Teacher allocation ==================
     def allocate_teachers(df3, teachers_df):
         available_teachers_df = teachers_df[teachers_df['Number of Duties'] > 0].copy()
         teacher_duties_tracker = dict(
@@ -257,14 +259,16 @@ def process_schedule(courses_file, rooms_file, teachers_file):
         
         df3 = pd.merge(
             df3,
-            teacher_allocations_df[teacher_allocations_df['Duty Type'] == 'Teacher Duty 1'][['Date', 'Timeslot', 'Room Name', 'Teacher Name']],
+            teacher_allocations_df.loc[teacher_allocations_df['Duty Type'] == 'Teacher Duty 1',
+                                       ['Date', 'Timeslot', 'Room Name', 'Teacher Name']],
             on=['Date', 'Timeslot', 'Room Name'],
             how='left'
         ).rename(columns={'Teacher Name': 'Teacher 1'})
         
         df3 = pd.merge(
             df3,
-            teacher_allocations_df[teacher_allocations_df['Duty Type'] == 'Teacher Duty 2'][['Date', 'Timeslot', 'Room Name', 'Teacher Name']],
+            teacher_allocations_df.loc[teacher_allocations_df['Duty Type'] == 'Teacher Duty 2',
+                                       ['Date', 'Timeslot', 'Room Name', 'Teacher Name']],
             on=['Date', 'Timeslot', 'Room Name'],
             how='left'
         ).rename(columns={'Teacher Name': 'Teacher 2'})
@@ -273,7 +277,7 @@ def process_schedule(courses_file, rooms_file, teachers_file):
     
     df3, teacher_duties_df = allocate_teachers(df3, teachers_df)
     
-    return df3
+    return df3, teacher_duties_df
 
 @app.route('/')
 def index():
@@ -281,44 +285,50 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    # print("reuquest receieved")
+    global schedule_cache
     try:
-        if ('courseFile' not in request.files or
+        if (
+            'courseFile' not in request.files or
             'roomFile' not in request.files or
-            'teacherFile' not in request.files):
+            'teacherFile' not in request.files
+        ):
             return jsonify({"error": "Please upload all required files."}), 400
         
         course_file = request.files['courseFile']
         room_file = request.files['roomFile']
         teacher_file = request.files['teacherFile']
         
-        schedule_df = process_schedule(course_file, room_file, teacher_file)
-        schedule_df = schedule_df.where(pd.notnull(schedule_df), None)
-        schedule_data = schedule_df.to_dict(orient='records')
+        final_schedule_df, teacher_duties_df = process_schedule(course_file, room_file, teacher_file)
         
+        # Convert DataFrames to list-of-dicts (handling NaNs) for session storage
+        schedule_data = final_schedule_df.where(pd.notnull(final_schedule_df), None).to_dict(orient='records')
+        duties_data = teacher_duties_df.where(pd.notnull(teacher_duties_df), None).to_dict(orient='records')
+        
+        # Store in session and update global cache
         session['schedule_data'] = schedule_data
+        session['teacher_duties_data'] = duties_data
+        schedule_cache = schedule_data
         
         return jsonify({"schedule": schedule_data})
-    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/download_excel', methods=['GET'])
-def download_excel():
-    schedule_data = session.get('schedule_data')
+@app.route('/download_csv', methods=['GET'])
+def download_csv():
+    # Try session first; if missing, then check the global cache.
+    schedule_data = session.get('schedule_data') or schedule_cache
     if not schedule_data:
         return "No schedule found in session. Generate the schedule first.", 400
     
-    df = pd.DataFrame(schedule_data)
+    df_schedule = pd.DataFrame(schedule_data)
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='ExamSchedule')
+    df_schedule.to_csv(output, index=False)
     output.seek(0)
     
     return send_file(
         output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        download_name='ExamSchedule.xlsx',
+        mimetype='text/csv',
+        download_name='ExamSchedule.csv',
         as_attachment=True
     )
 
